@@ -27,12 +27,23 @@ func main() {
 
 	errc := make(chan error, 1)
 
+	// forward to https
 	go func() {
 		errc <- http.ListenAndServe(":80", http.RedirectHandler("https://"+*host+":443", http.StatusPermanentRedirect))
 	}()
 
+	//serve https
 	go func() {
-		errc <- http.ListenAndServeTLS(":443", *cert, *key, httputil.NewSingleHostReverseProxy(u))
+		rprox := httputil.NewSingleHostReverseProxy(u)
+		d1 := rprox.Director
+		d2 := func(req *http.Request) {
+			d1(req)
+			req.Header.Add("X-Forwarded-Proto", "https")
+		}
+
+		rprox.Director = d2
+
+		errc <- http.ListenAndServeTLS(":443", *cert, *key, rprox)
 	}()
 
 	err = <- errc
