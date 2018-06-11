@@ -7,8 +7,10 @@ import (
 	"net/http"
 )
 
-var port = flag.String("destination", "8080", "port number")
-var host = flag.String("host", "", "website we're serving")
+var port = flag.String("d", "8080", "destination port number")
+var host = flag.String("h", "", "website we're serving")
+var cert = flag.String("c", "", "cert location")
+var key = flag.String("k", "", "key location")
 
 func main() {
 	flag.Parse()
@@ -30,7 +32,7 @@ func main() {
 	}()
 
 	go func() {
-		errc <- http.ListenAndServe(":443", httputil.NewSingleHostReverseProxy(u))
+		errc <- http.ListenAndServeTLS(":443", *cert, *key, httputil.NewSingleHostReverseProxy(u))
 	}()
 
 	err = <- errc
